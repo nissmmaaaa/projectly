@@ -695,3 +695,16 @@ nav {
     grid-template-columns: 1fr;
   }
 }
+.project-input,
+.project-input input,
+.project-input button,
+.examples,
+.examples button {
+  position: relative;
+  z-index: 10;
+}
+
+.project-input button,
+.examples button {
+  cursor: pointer;
+}
