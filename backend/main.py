@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from services.paper_service import search_all_papers
+from retrieval.paper_retriever import retrieve_papers
 from services.dataset_service import (
     search_all_datasets,
     get_dataset_details,
@@ -36,3 +38,16 @@ def search_datasets(query: str):
     )
 
     return ranked_datasets
+
+
+@app.get("/papers")
+def search_papers(query: str):
+    papers = search_all_papers(query)
+
+    ranked_papers = retrieve_papers(
+        project_idea=query,
+        papers=papers,
+        top_k=5
+    )
+
+    return ranked_papers
