@@ -7,6 +7,9 @@ from services.dataset_service import (
     get_dataset_details,
 )
 from retrieval.dataset_retriever import retrieve_datasets
+from services.github_service import search_github_repositories
+from retrieval.github_retriever import retrieve_github_repositories
+
 app = FastAPI(title="Projectly API")
 
 # Allow React frontend to communicate with FastAPI
@@ -51,3 +54,15 @@ def search_papers(query: str):
     )
 
     return ranked_papers
+
+@app.get("/github")
+def search_github(query: str):
+    repositories = search_github_repositories(query)
+
+    ranked_repositories = retrieve_github_repositories(
+        project_idea=query,
+        repositories=repositories,
+        top_k=5
+    )
+
+    return ranked_repositories
