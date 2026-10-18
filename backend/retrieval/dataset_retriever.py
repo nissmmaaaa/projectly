@@ -1,66 +1,63 @@
+
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer, CrossEncoder
+from recommendation.dataset_recommender import recommend_datasets
+from retrieval.dataset_reranker import rerank_datasets
 
 model = SentenceTransformer("BAAI/bge-small-en-v1.5")
 
 
 def retrieve_datasets(project_idea, datasets, top_k=5):
-
     if not datasets:
         return []
 
-    # Build searchable text directly from dataset information
     dataset_texts = []
 
     for dataset in datasets:
         text = f"""
-        Dataset: {dataset.get('id', '')}
+        Dataset: {dataset.get('title', '')}
         Description: {dataset.get('description', '')}
         Tags: {', '.join(dataset.get('tags', []))}
         """
         dataset_texts.append(text)
 
-    # Create embeddings
-    dataset_embeddings = model.encode(
+    embeddings = model.encode(
         dataset_texts,
         normalize_embeddings=True
     )
+    embeddings = np.asarray(embeddings, dtype="float32")
 
-    dataset_embeddings = np.asarray(
-        dataset_embeddings,
-        dtype="float32"
-    )
+    index = faiss.IndexFlatIP(embeddings.shape[1])
+    index.add(embeddings)
 
-    # FAISS index
-    index = faiss.IndexFlatIP(dataset_embeddings.shape[1])
-    index.add(dataset_embeddings)
-
-    # Embed user query
     query_embedding = model.encode(
         [project_idea],
         normalize_embeddings=True
     )
+    query_embedding = np.asarray(query_embedding, dtype="float32")
 
-    query_embedding = np.asarray(
-        query_embedding,
-        dtype="float32"
-    )
+    # Retrieve a larger candidate pool before reranking
+    k = min(20, len(datasets))
+    scores, indices = index.search(query_embedding, k)
 
-    # Search
-    k = min(top_k, len(datasets))
-
-    scores, indices = index.search(
-        query_embedding,
-        k
-    )
-
-    # Return ranked datasets
-    results = []
+    candidates = []
 
     for score, position in zip(scores[0], indices[0]):
+        if position < 0:
+            continue
+
         dataset = datasets[position].copy()
         dataset["similarity_score"] = float(score)
-        results.append(dataset)
+        candidates.append(dataset)
 
-    return results
+    reranked = rerank_datasets(
+    project_idea,
+    candidates,
+    top_k=len(candidates)
+)
+
+    return recommend_datasets(
+        reranked,
+        top_k=top_k
+    )

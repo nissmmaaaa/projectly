@@ -11,13 +11,18 @@ def search_github_repositories(query: str, limit: int = 10):
         "order": "desc"
     }
 
-    response = requests.get(
-        url,
-        params=params,
-        timeout=20
-    )
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            timeout=20
+        )
 
-    response.raise_for_status()
+        response.raise_for_status()
+
+    except requests.RequestException as e:
+        print(f"GitHub search failed for '{query}': {e}")
+        return []
 
     data = response.json()
 

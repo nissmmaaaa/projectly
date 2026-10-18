@@ -3,7 +3,6 @@ import requests
 from services.arxiv_service import search_arxiv
 from services.openalex_service import search_openalex
 
-
 def search_semantic_scholar(query: str, limit: int = 10):
     url = "https://api.semanticscholar.org/graph/v1/paper/search"
 
@@ -13,15 +12,20 @@ def search_semantic_scholar(query: str, limit: int = 10):
         "fields": "title,abstract,authors,year,url,citationCount"
     }
 
-    response = requests.get(
-        url,
-        params=params,
-        timeout=20
-    )
+    try:
+        response = requests.get(
+            url,
+            params=params,
+            timeout=20
+        )
 
-    response.raise_for_status()
+        response.raise_for_status()
 
-    data = response.json()
+        data = response.json()
+
+    except requests.RequestException as e:
+        print(f"Semantic Scholar unavailable: {e}")
+        return []
 
     results = []
 
@@ -40,7 +44,6 @@ def search_semantic_scholar(query: str, limit: int = 10):
         })
 
     return results
-
 
 def search_all_papers(query: str, limit: int = 10):
     semantic_scholar_results = search_semantic_scholar(query, limit)
